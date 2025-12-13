@@ -1,6 +1,7 @@
 import os
 import argparse
 from dotenv import load_dotenv
+import config
 
 parser = argparse.ArgumentParser(description="Chatbot")
 parser.add_argument("user_prompt", type=str, help="User prompt")
@@ -18,7 +19,11 @@ client = genai.Client(api_key=api_key)
 
 messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
 
-response = client.models.generate_content(model='gemini-2.5-flash', contents=messages)
+response = client.models.generate_content(
+        model='gemini-2.5-flash', 
+        contents=messages,
+        config=types.GenerateContentConfig(system_instruction=config.system_prompt)
+        )
 
 if response.usage_metadata == None:
     raise RuntimeError("Apie failed")

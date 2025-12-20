@@ -38,28 +38,59 @@ config=types.GenerateContentConfig(
     tools=[available_functions], system_instruction=config.system_prompt
 )
 
-response = client.models.generate_content(
-        model='gemini-2.5-flash', 
-        contents=messages,
-        config=config
+
+max_itterations = 20
+
+while True:
+    try:
+        response = client.models.generate_content(
+                model='gemini-2.5-flash-lite', 
+                contents=messages,
+                config=config
+                )
+
+        for candidate in response.candidates:
+            messages.append(candidate.content)
+
+        if response.usage_metadata == None:
+            raise RuntimeError("Apie failed")
+
+        if args.verbose:
+            print(f"User prompt:{response.text}")
+            print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+        if response.function_calls != None:
+            results = []
+            for function in response.function_calls:
+                result = call_function(function, args.verbose)
+                if not result.parts[0].function_response.response:
+                    raise Exception("Function Failed")
+                results.append(result.parts[0])
+                if args.verbose:
+                    print(f"-> {result.parts[0].function_response.response}")
+        else:
+            print(response.text)
+
+
+        messages.append(
+            types.Content(
+                role="user",
+                parts=results,
+            )
         )
 
-if response.usage_metadata == None:
-    raise RuntimeError("Apie failed")
+        if len(response.candidates)  <= 0 and response.text != None:
+            break
+ 
+    except Exception as e:
+        print(f"ERROR: {e}")
 
-if args.verbose:
-    #print(f"User prompt:{response.text}")
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-if response.function_calls != None:
-    results = []
-    for function in response.function_calls:
-        result = call_function(function, args.verbose)
-        if not result.parts[0].function_response.response:
-            raise Exception("Function Failed")
-        results.append(result.parts[0])
-        if args.verbose:
-            print(f"-> {result.parts[0].function_response.response}")
-else:
-    print(response.text)
+    if max_itterations < 0:
+        break
+
+    max_itterations -= 1
+    print("test")
+
+
+
 

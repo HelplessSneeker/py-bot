@@ -7,6 +7,7 @@ from functions.get_files_info import schema_get_files_info
 from functions.get_file_content import schema_get_file_content
 from functions.run_python_file import schema_run_python_file
 from functions.write_file import schema_write_file 
+from functions.call_function import call_function
 
 parser = argparse.ArgumentParser(description="Chatbot")
 parser.add_argument("user_prompt", type=str, help="User prompt")
@@ -47,12 +48,18 @@ if response.usage_metadata == None:
     raise RuntimeError("Apie failed")
 
 if args.verbose:
-    print(f"User prompt:{response.text}")
+    #print(f"User prompt:{response.text}")
     print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
     print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-else :
-    if response.function_calls != None:
-        for function in response.function_calls:
-            print(f"Calling function: {function.name}({function.args})")
-    else:
-        print(response.text)
+if response.function_calls != None:
+    results = []
+    for function in response.function_calls:
+        result = call_function(function, args.verbose)
+        if not result.parts[0].function_response.response:
+            raise Exception("Function Failed")
+        results.append(result.parts[0])
+        if args.verbose:
+            print(f"-> {result.parts[0].function_response.response}")
+else:
+    print(response.text)
+

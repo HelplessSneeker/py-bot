@@ -41,16 +41,21 @@ config=types.GenerateContentConfig(
 
 max_itterations = 20
 
-while True:
+while max_itterations > 0:
     try:
         response = client.models.generate_content(
-                model='gemini-2.5-flash-lite', 
+                model='gemini-2.5-flash', 
                 contents=messages,
                 config=config
                 )
+        function_calls = []
 
         for candidate in response.candidates:
             messages.append(candidate.content)
+            for part in candidate.content.parts:
+                if part.function_call != None:
+                    function_calls.append(part.function_call)
+
 
         if response.usage_metadata == None:
             raise RuntimeError("Apie failed")
@@ -59,37 +64,35 @@ while True:
             print(f"User prompt:{response.text}")
             print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
             print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-        if response.function_calls != None:
+        if len(function_calls) > 0 :
             results = []
-            for function in response.function_calls:
+
+            for function in function_calls:
                 result = call_function(function, args.verbose)
                 if not result.parts[0].function_response.response:
                     raise Exception("Function Failed")
                 results.append(result.parts[0])
                 if args.verbose:
                     print(f"-> {result.parts[0].function_response.response}")
-        else:
-            print(response.text)
 
-
-        messages.append(
-            types.Content(
-                role="user",
-                parts=results,
+            messages.append(
+                types.Content(
+                    role="user",
+                    parts=results,
+                )
             )
-        )
+        elif response.text != None:
+            print(response.text)
+            break
 
         if len(response.candidates)  <= 0 and response.text != None:
             break
  
     except Exception as e:
         print(f"ERROR: {e}")
-
-    if max_itterations < 0:
         break
 
     max_itterations -= 1
-    print("test")
 
 
 

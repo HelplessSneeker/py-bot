@@ -18,7 +18,7 @@
 
 ### Prerequisites
 
-  To execute the project the dependencies [uv](https://github.com/astral-sh/uv) Package and Project manager will be needed
+  To execute the project and install the dependencies [uv](https://github.com/astral-sh/uv) Package and Project manager will be needed
 
 ### Usage
 
